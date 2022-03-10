@@ -139,10 +139,14 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
     /**
      * @dev Function that puts the funds to work.
      * It gets called whenever someone supplied in the strategy's vault contract.
-     * It supplies {want} to farm {SOLID} and {OXD}
+     * It supplies {want} to the oxPool, then stakes it to farm {SOLID} and {OXD}
      */
     function deposit() public whenNotPaused {
-        //todo
+        uint256 wantBalance = IERC20Upgradeable(want).balanceOf(address(this));
+        if (wantBalance != 0) {
+            IOxPool(oxPool).depositLp(wantBalance);
+            IMultiRewards(stakingAddress).stake(wantBalance);
+        }
     }
 
     /**
