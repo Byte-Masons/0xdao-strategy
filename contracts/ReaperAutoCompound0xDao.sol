@@ -177,6 +177,7 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
      * @dev Calculates the total amount of {want} held in the 0xDao protocol
      */
     function balanceOfPool() public view returns (uint) {
+        return IMultiRewards(stakingAddress).balanceOf(address(this));
     }
 
     /**
