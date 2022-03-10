@@ -107,8 +107,21 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
      *      Profit is denominated in WFTM, and takes fees into account.
      */
     function estimateHarvest() external view override returns (uint profit, uint callFeeToUser) {
+        // Tentative reward estimation, need more insight into the multireward view functions
+        uint256 solidRewards = IMultiRewards(stakingAddress).earned(address(this), SOLID);
+        uint256 oxdRewards = IMultiRewards(stakingAddress).earned(address(this), OXD);
+
+        IBaseV1Router01 router = IBaseV1Router01(SOLIDLY_ROUTER);
+        (uint256 fromSolid, ) = router.getAmountOut(solidRewards, SOLID, WFTM);
+        profit += fromSolid;
+        (uint256 fromOxd, ) = router.getAmountOut(oxdRewards, OXD, WFTM);
+        profit += fromOxd;
+
+        uint256 wftmFee = (profit * totalFee) / PERCENT_DIVISOR;
+        callFeeToUser = (wftmFee * callFee) / PERCENT_DIVISOR;
+        profit -= wftmFee;
     }
-    
+
     /**
      * @dev Function to retire the strategy. Claims all rewards and withdraws
      *      all principal from external contracts, and sends everything back to
