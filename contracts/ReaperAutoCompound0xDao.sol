@@ -4,8 +4,10 @@ import './abstract/ReaperBaseStrategy.sol';
 import './interfaces/IUniswapRouter.sol';
 import './interfaces/IMasterChef.sol';
 import './interfaces/IUniswapV2Pair.sol';
+import './interfaces/IUniswapV2Router02.sol';
 import './interfaces/IOxPool.sol';
 import './interfaces/IOxLens.sol';
+import './interfaces/IBaseV1Router01.sol';
 import './interfaces/IBaseV1Pair.sol';
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
@@ -205,6 +207,7 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
      * Get rewards from OxDao
      */
     function _claimRewards() internal {
+        IMultiRewards(stakingAddress).getReward();
     }
 
     /**
@@ -212,7 +215,11 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
      * Swaps {SOLID} and {OxDao} to {WFTM}
      */
     function _swapRewardsToWftm() internal {
-       //todo
+       uint256 solidBalance = IERC20Upgradeable(SOLID).balanceOf(address(this));
+       uint256 oxdBalance = IERC20Upgradeable(OXD).balanceOf(address(this));
+
+       _swapTokens(SOLID, WFTM, solidBalance, SOLIDLY_ROUTER);
+       _swapTokens(OXD, WFTM, oxdBalance, SOLIDLY_ROUTER);
     }
 
     /**
@@ -235,7 +242,77 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
 
     /** @dev Converts WFTM to both sides of the LP token and builds the liquidity pair */
     function _addLiquidity() internal {
-        //todo
+        uint256 wrappedHalf = IERC20Upgradeable(WFTM).balanceOf(address(this)) / 2;
+        if (wrappedHalf == 0) {
+            return;
+        }
+
+        if (lpToken0 != WFTM) {
+            address router = _findBestRouterForSwap(WFTM, lpToken0, wrappedHalf);
+            _swapTokens(WFTM, lpToken0, wrappedHalf, router);
+        }
+        if (lpToken1 != WFTM) {
+            address router = _findBestRouterForSwap(WFTM, lpToken1, wrappedHalf);
+            _swapTokens(WFTM, lpToken1, wrappedHalf, router);
+        }
+
+        uint256 lpToken0Bal = IERC20Upgradeable(lpToken0).balanceOf(address(this));
+        uint256 lpToken1Bal = IERC20Upgradeable(lpToken1).balanceOf(address(this));
+
+        IBaseV1Router01(SOLIDLY_ROUTER).addLiquidity(
+            lpToken0,
+            lpToken1,
+            IBaseV1Pair(want).stable(),
+            lpToken0Bal,
+            lpToken1Bal,
+            0,
+            0,
+            address(this),
+            block.timestamp
+        );
+    }
+
+    /** @dev Returns address of router that would return optimum output for _from->_to swap. */
+    function _findBestRouterForSwap(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) internal view returns (address) {
+        (uint256 fromSolid, ) = IBaseV1Router01(SOLIDLY_ROUTER).getAmountOut(_amount, _from, _to);
+
+        address[] memory path = new address[](2);
+        path[0] = _from;
+        path[1] = _to;
+        uint256 fromSpooky = IUniswapV2Router02(SPOOKY_ROUTER).getAmountsOut(_amount, path)[1];
+
+        return fromSolid > fromSpooky ? SOLIDLY_ROUTER : SPOOKY_ROUTER;
+    }
+
+    function _swapTokens(
+        address _from,
+        address _to,
+        uint256 _amount,
+        address routerAddress
+    ) internal {
+        if (_amount != 0) {
+            if (routerAddress == SOLIDLY_ROUTER) {
+                IBaseV1Router01 router = IBaseV1Router01(routerAddress);
+                (, bool stable) = router.getAmountOut(_amount, _from, _to);
+                router.swapExactTokensForTokensSimple(_amount, 0, _from, _to, stable, address(this), block.timestamp);
+            } else {
+                IUniswapV2Router02 router = IUniswapV2Router02(routerAddress);
+                address[] memory path = new address[](2);
+                path[0] = _from;
+                path[1] = _to;
+                router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                    _amount,
+                    0,
+                    path,
+                    address(this),
+                    block.timestamp
+                );
+            }
+        }
     }
 
     /**
