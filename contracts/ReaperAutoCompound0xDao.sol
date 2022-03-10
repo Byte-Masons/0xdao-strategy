@@ -45,7 +45,7 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
 
     /**
     * @dev OxDao variables
-    * {oxPool} - OxDao pool for the want
+    * {oxPool} - OxDao pool for the want. OxPools represent a 1:1 ERC20 wrapper of a Solidly LP token
     * {stakingAddress} - staking address for the pool
     */
     address public oxPool;
@@ -78,12 +78,26 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
 
     /**
      * @dev Withdraws funds and sents them back to the vault.
-     * It withdraws {want} from OxDao
+     * It unstakes {want} and withdraws it from OxDao
      * The available {want} minus fees is returned to the vault.
      */
     function withdraw(uint _withdrawAmount) external {
         require(msg.sender == vault, "!vault");
-        //todo
+
+        uint256 wantBalance = balanceOfWant();
+
+        if (wantBalance < _withdrawAmount) {
+            IMultiRewards(stakingAddress).withdraw(_withdrawAmount - wantBalance);
+            IOxPool(oxPool).withdrawLp(_withdrawAmount - wantBalance);
+            wantBalance = balanceOfWant();
+        }
+
+        if (wantBalance > _withdrawAmount) {
+            wantBalance = _withdrawAmount;
+        }
+
+        uint256 withdrawFee = (wantBalance * securityFee) / PERCENT_DIVISOR;
+        IERC20Upgradeable(want).safeTransfer(vault, wantBalance - withdrawFee);
     }
 
     /**

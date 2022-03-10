@@ -2,6 +2,14 @@
 pragma solidity 0.8.11;
 import "./ISolidlyLens.sol";
 
+/**
+ * @title OxPool
+ * @author 0xDAO
+ * @dev For every Solidly pool there is a corresponding oxPool
+ * @dev oxPools represent a 1:1 ERC20 wrapper of a Solidly LP token
+ * @dev For every oxPool there is a corresponding Synthetix MultiRewards contract
+ * @dev oxPool LP tokens can be staked into the Synthetix MultiRewards contracts to allow LPs to earn fees
+ */
 interface IOxPool {
     function stakingAddress() external view returns (address);
 

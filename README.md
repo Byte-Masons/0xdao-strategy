@@ -1,5 +1,6 @@
 # 0xDao Strategy
-
+Deposit in pool on 0xDao, deposit on Solid, get SOLID + OXD rewards, compound
+The 0xPools tokens are ERC20 wrapper of the SOLID LPs at a 1:1 ratio
 
 # Basic Sample Hardhat Project
 
