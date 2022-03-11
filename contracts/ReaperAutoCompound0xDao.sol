@@ -147,9 +147,8 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
      */
     function panic() external {
         _onlyStrategistOrOwner();
-        //todo get tokens
-        uint wantBalance = IERC20Upgradeable(want).balanceOf(address(this));
-        IERC20Upgradeable(want).safeTransfer(vault, wantBalance);
+        IMultiRewards(stakingAddress).exit();
+        IOxPool(oxPool).withdrawLp(IOxPool(oxPool).balanceOf(address(this)));
         pause();
     }
 
