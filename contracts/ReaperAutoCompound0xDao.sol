@@ -130,7 +130,16 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
      * Note: this is not an emergency withdraw function. For that, see panic().
      */
     function retireStrat() external {
-        //todo get tokens, send to vault
+        _onlyStrategistOrOwner();
+
+        IMultiRewards(stakingAddress).exit();
+        IOxPool(oxPool).withdrawLp(IOxPool(oxPool).balanceOf(address(this)));
+
+        _swapRewardsToWftm();
+        _addLiquidity();
+
+        uint256 wantBal = balanceOfWant();
+        IERC20Upgradeable(want).safeTransfer(vault, wantBal);
     }
 
     /**
@@ -188,6 +197,7 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
 
     /**
      * @dev Calculates the total amount of {want} held in the 0xDao protocol
+     * No need to check the balance inside oxPool as it is always sent to the stakingAddress
      */
     function balanceOfPool() public view returns (uint) {
         return IMultiRewards(stakingAddress).balanceOf(address(this));
