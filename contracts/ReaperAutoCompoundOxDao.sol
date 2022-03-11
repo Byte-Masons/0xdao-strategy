@@ -320,8 +320,7 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
         if (_amount != 0) {
             if (routerAddress == SOLIDLY_ROUTER) {
                 IBaseV1Router01 router = IBaseV1Router01(routerAddress);
-                (, bool stable) = router.getAmountOut(_amount, _from, _to);
-                router.swapExactTokensForTokensSimple(_amount, 0, _from, _to, stable, address(this), block.timestamp);
+                router.swapExactTokensForTokensSimple(_amount, 0, _from, _to, false, address(this), block.timestamp);
             } else {
                 IUniswapV2Router02 router = IUniswapV2Router02(routerAddress);
                 address[] memory path = new address[](2);
