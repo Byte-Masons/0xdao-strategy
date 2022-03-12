@@ -3,8 +3,8 @@ async function main() {
 
   const wantAddress = '0xED7Fd242ce91a541ABcaE52f3d617dacA7fe6e34';
 
-  const tokenName = '0xDao HND-WFTM Crypt';
-  const tokenSymbol = 'rf-oxd-vAMM-HND-WFTM';
+  const tokenName = '0xDao CRV-WFTM Crypt';
+  const tokenSymbol = 'rf-oxd-vAMM-CRV-WFTM';
   const depositFee = 0;
   const tvlCap = ethers.utils.parseEther('5000');
 
