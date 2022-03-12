@@ -1,6 +1,6 @@
 async function main() {
-  const vaultAddress = '0x048bEf9bF92aB9EEDe6D97b84aA088d2792585aA';
-  const want = '0x6aAE93f2915b899e87b49a9254434D36ac9570d8';
+  const vaultAddress = '0xeb94A406749Eb6dca39800C1ED8706cA4a806247';
+  const want = '0x5ef8f0bd4F071B0199603a28ec9343F3651999c0';
 
   const ERC20 = await ethers.getContractFactory('contracts/ERC20.sol:ERC20');
   const erc20 = await ERC20.attach(want);
