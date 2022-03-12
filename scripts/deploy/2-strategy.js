@@ -3,8 +3,8 @@ const hre = require('hardhat');
 async function main() {
   const Strategy = await ethers.getContractFactory('ReaperAutoCompoundOxDao');
 
-  const vaultAddress = '0x048bEf9bF92aB9EEDe6D97b84aA088d2792585aA';
-  const wantAddress = '0x6aAE93f2915b899e87b49a9254434D36ac9570d8';
+  const vaultAddress = '0x9382B5f94561cA1C12F4af2925A7d50a788AcB7f';
+  const wantAddress = '0x304B61f3481C977Ffbe630B55f2aBeEe74792664';
 
   const treasuryAddress = '0x0e7c5313E9BB80b654734d9b7aB1FB01468deE3b';
   const paymentSplitterAddress = '0x63cbd4134c2253041F370472c130e92daE4Ff174';
