@@ -3,12 +3,13 @@ async function main() {
 
   const wantAddress = '0xFCEC86aF8774d69e2e4412B8De3f4aBf1f671ecC';
 
-  const tokenName = '0xDao HND-WFTM Crypt';
-  const tokenSymbol = 'rf-oxd-vAMM-HND-WFTM';
+  const tokenName = 'FTM-SEX 0xDao Crypt';
+  const tokenSymbol = 'rf-oxd-vAMM-WFTM-SEX';
   const depositFee = 0;
   const tvlCap = ethers.utils.parseEther('5000');
+  const options = { gasPrice: 300000000000, gasLimit: 9000000 };
 
-  const vault = await Vault.deploy(wantAddress, tokenName, tokenSymbol, depositFee, tvlCap);
+  const vault = await Vault.deploy(wantAddress, tokenName, tokenSymbol, depositFee, tvlCap, options);
 
   await vault.deployed();
   console.log('Vault deployed to:', vault.address);
