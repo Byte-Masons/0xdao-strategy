@@ -419,11 +419,21 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
             SOLIDLY_ROUTER,
             lpToken0Allowance
         );
+        lpToken0Allowance = type(uint).max - IERC20Upgradeable(lpToken0).allowance(address(this), SPOOKY_ROUTER);
+        IERC20Upgradeable(lpToken0).safeIncreaseAllowance(
+            SPOOKY_ROUTER,
+            lpToken0Allowance
+        );
 
         // lpToken1
         uint256 lpToken1Allowance = type(uint).max - IERC20Upgradeable(lpToken1).allowance(address(this), SOLIDLY_ROUTER);
         IERC20Upgradeable(lpToken1).safeIncreaseAllowance(
             SOLIDLY_ROUTER,
+            lpToken1Allowance
+        );
+        lpToken1Allowance = type(uint).max - IERC20Upgradeable(lpToken1).allowance(address(this), SPOOKY_ROUTER);
+        IERC20Upgradeable(lpToken1).safeIncreaseAllowance(
+            SPOOKY_ROUTER,
             lpToken1Allowance
         );
     }
@@ -445,6 +455,8 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
         IERC20Upgradeable(WFTM).safeDecreaseAllowance(SPOOKY_ROUTER, IERC20Upgradeable(WFTM).allowance(address(this), SPOOKY_ROUTER));
 
         IERC20Upgradeable(lpToken0).safeDecreaseAllowance(SOLIDLY_ROUTER, IERC20Upgradeable(lpToken0).allowance(address(this), SOLIDLY_ROUTER));
+        IERC20Upgradeable(lpToken0).safeDecreaseAllowance(SPOOKY_ROUTER, IERC20Upgradeable(lpToken0).allowance(address(this), SPOOKY_ROUTER));
         IERC20Upgradeable(lpToken1).safeDecreaseAllowance(SOLIDLY_ROUTER, IERC20Upgradeable(lpToken1).allowance(address(this), SOLIDLY_ROUTER));
+        IERC20Upgradeable(lpToken1).safeDecreaseAllowance(SPOOKY_ROUTER, IERC20Upgradeable(lpToken1).allowance(address(this), SPOOKY_ROUTER));
     }
 }
