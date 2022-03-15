@@ -1,7 +1,7 @@
 async function main() {
   const Vault = await ethers.getContractFactory('ReaperVaultv1_3');
 
-  const wantAddress = '';
+  const wantAddress = '0xEa5f4ECf6900833f9B7038e5D8d67142ABb09Dcc';
 
   const tokenName = '0xDao HND-WFTM Crypt';
   const tokenSymbol = 'rf-oxd-vAMM-HND-WFTM';
