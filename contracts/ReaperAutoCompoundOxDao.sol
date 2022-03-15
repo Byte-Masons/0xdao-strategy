@@ -48,10 +48,12 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
     /**
     * @dev OxDao variables
     * {oxPool} - OxDao pool for the want. OxPools represent a 1:1 ERC20 wrapper of a Solidly LP token
-    * {stakingAddress} - staking address for the pool
+    * {stakingAddress} - Staking address for the pool
+    * {relayToken} - Token used for liquidity swaps
     */
     address public oxPool;
     address public stakingAddress;
+    address public relayToken;
 
     /**
      * @dev Initializes the strategy. Sets parameters, saves routes, and gives allowances.
@@ -73,9 +75,19 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
         (lpToken0, lpToken1) = IBaseV1Pair(want).tokens();
         oxPool = IOxLens(OXLENS).oxPoolBySolidPool(address(want));
         stakingAddress = IOxPool(oxPool).stakingAddress();
+        relayToken = lpToken0;
 
         // Actions
         _giveAllowances();
+    }
+
+    /**
+     * @dev Change token used as relay for swaps
+     */
+    function setRelayToken(address _relayToken) external {
+        _onlyStrategistOrOwner();
+        require(_relayToken == lpToken0 || _relayToken == lpToken1, "Wrong token");
+        relayToken = _relayToken;
     }
 
     /**
@@ -265,19 +277,24 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
 
     /** @dev Converts WFTM to both sides of the LP token and builds the liquidity pair */
     function _addLiquidity() internal {
-        uint256 wrappedHalf = IERC20Upgradeable(WFTM).balanceOf(address(this)) / 2;
-        if (wrappedHalf == 0) {
+        uint256 wrapped = IERC20Upgradeable(WFTM).balanceOf(address(this));
+        if (wrapped == 0) {
             return;
         }
 
-        if (lpToken0 != WFTM) {
-            address router = _findBestRouterForSwap(WFTM, lpToken0, wrappedHalf);
-            _swapTokens(WFTM, lpToken0, wrappedHalf, router);
+        address router = _findBestRouterForSwap(WFTM, relayToken, wrapped);
+        _swapTokens(WFTM, relayToken, wrapped, router);
+
+        uint256 relayTokenHalf = IERC20Upgradeable(relayToken).balanceOf(address(this)) / 2;
+
+        if (relayToken == lpToken0) {
+            router = _findBestRouterForSwap(relayToken, lpToken1, relayTokenHalf);
+            _swapTokens(relayToken, lpToken1, relayTokenHalf, router);
+        } else {
+            router = _findBestRouterForSwap(relayToken, lpToken0, relayTokenHalf);
+            _swapTokens(relayToken, lpToken0, relayTokenHalf, router);
         }
-        if (lpToken1 != WFTM) {
-            address router = _findBestRouterForSwap(WFTM, lpToken1, wrappedHalf);
-            _swapTokens(WFTM, lpToken1, wrappedHalf, router);
-        }
+
 
         uint256 lpToken0Bal = IERC20Upgradeable(lpToken0).balanceOf(address(this));
         uint256 lpToken1Bal = IERC20Upgradeable(lpToken1).balanceOf(address(this));
@@ -420,7 +437,7 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
 
         IERC20Upgradeable(SOLID).safeDecreaseAllowance(SOLIDLY_ROUTER, IERC20Upgradeable(SOLID).allowance(address(this), SOLIDLY_ROUTER));
         IERC20Upgradeable(SOLID).safeDecreaseAllowance(SPOOKY_ROUTER, IERC20Upgradeable(SOLID).allowance(address(this), SPOOKY_ROUTER));
-        
+
         IERC20Upgradeable(OXD).safeDecreaseAllowance(SOLIDLY_ROUTER, IERC20Upgradeable(OXD).allowance(address(this), SOLIDLY_ROUTER));
         IERC20Upgradeable(OXD).safeDecreaseAllowance(SPOOKY_ROUTER, IERC20Upgradeable(OXD).allowance(address(this), SPOOKY_ROUTER));
 
