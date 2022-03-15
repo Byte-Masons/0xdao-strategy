@@ -277,13 +277,16 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
 
     /** @dev Converts WFTM to both sides of the LP token and builds the liquidity pair */
     function _addLiquidity() internal {
+        address router;
         uint256 wrapped = IERC20Upgradeable(WFTM).balanceOf(address(this));
         if (wrapped == 0) {
             return;
         }
 
-        address router = _findBestRouterForSwap(WFTM, relayToken, wrapped);
-        _swapTokens(WFTM, relayToken, wrapped, router);
+        if(relayToken != WFTM) {
+            router = _findBestRouterForSwap(WFTM, relayToken, wrapped);
+            _swapTokens(WFTM, relayToken, wrapped, router);
+        }
 
         uint256 relayTokenHalf = IERC20Upgradeable(relayToken).balanceOf(address(this)) / 2;
 
