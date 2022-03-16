@@ -1,10 +1,10 @@
 async function main() {
   const Vault = await ethers.getContractFactory('ReaperVaultv1_3');
 
-  const wantAddress = '';
+  const wantAddress = '0x74b61f876FB49C7e73dBDd3B2185390BFDC11fF5';
 
-  const tokenName = '0xDao HND-WFTM Crypt';
-  const tokenSymbol = 'rf-oxd-vAMM-HND-WFTM';
+  const tokenName = '0xDao SCREAM-XSCREAM Crypt';
+  const tokenSymbol = 'rfvAMM-SCREAM-XSCREAM';
   const depositFee = 0;
   const tvlCap = ethers.utils.parseEther('5000');
 
