@@ -291,13 +291,10 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
         uint256 relayTokenHalf = IERC20Upgradeable(relayToken).balanceOf(address(this)) / 2;
 
         if (relayToken == lpToken0) {
-            router = _findBestRouterForSwap(relayToken, lpToken1, relayTokenHalf);
-            _swapTokens(relayToken, lpToken1, relayTokenHalf, router);
+            _swapTokens(relayToken, lpToken1, relayTokenHalf, SOLIDLY_ROUTER);
         } else {
-            router = _findBestRouterForSwap(relayToken, lpToken0, relayTokenHalf);
-            _swapTokens(relayToken, lpToken0, relayTokenHalf, router);
+            _swapTokens(relayToken, lpToken0, relayTokenHalf, SOLIDLY_ROUTER);
         }
-
 
         uint256 lpToken0Bal = IERC20Upgradeable(lpToken0).balanceOf(address(this));
         uint256 lpToken1Bal = IERC20Upgradeable(lpToken1).balanceOf(address(this));

@@ -7,7 +7,7 @@ async function main() {
   const tokenSymbol = 'rf-oxd-vAMM-SOLIDsex-g3CRV';
   const depositFee = 0;
   const tvlCap = ethers.utils.parseEther('5000');
-  const options = { gasPrice: 400000000000, gasLimit: 9000000 };
+  const options = { gasPrice: 300000000000, gasLimit: 9000000 };
 
   const vault = await Vault.deploy(wantAddress, tokenName, tokenSymbol, depositFee, tvlCap, options);
 
