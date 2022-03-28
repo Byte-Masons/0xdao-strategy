@@ -19,6 +19,12 @@ pragma solidity 0.8.11;
 contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
+    // Wrapper struct to encapsulate a UniRouter swap path + the best router for it
+    struct SwapInfo {
+        address[] path;
+        address router;
+    }
+
     /**
      * @dev Tokens Used:
      * {WFTM} - Required for liquidity routing when doing swaps. Also used to charge fees on yield.
@@ -56,6 +62,12 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
     address public relayToken;
 
     /**
+     * @dev tokenA => (tokenB => swapPath config): returns best path + router to swap
+     *      tokenA to tokenB
+     */
+    mapping(address => mapping(address => SwapInfo)) public swapInfo;
+
+    /**
      * @dev Initializes the strategy. Sets parameters, saves routes, and gives allowances.
      * @notice see documentation for each variable above its respective declaration.
      */
@@ -76,18 +88,14 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
         oxPool = IOxLens(OXLENS).oxPoolBySolidPool(address(want));
         stakingAddress = IOxPool(oxPool).stakingAddress();
         relayToken = lpToken0;
-
-        // Actions
-        _giveAllowances();
     }
 
     /**
-     * @dev Change token used as relay for swaps
+     * @dev Update {SwapInfo} for a specified pair of tokens.
      */
-    function setRelayToken(address _relayToken) external {
+    function updateSwapInfo(address _tokenIn, address _tokenOut, address _router, address[] calldata _path) external {
         _onlyStrategistOrOwner();
-        require(_relayToken == lpToken0 || _relayToken == lpToken1, "Wrong token");
-        relayToken = _relayToken;
+        swapInfo[_tokenIn][_tokenOut] = SwapInfo({path: _path, router: _router});
     }
 
     /**
@@ -170,9 +178,6 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
     function unpause() external {
         _onlyStrategistOrOwner();
         _unpause();
-
-        _giveAllowances();
-
         deposit();
     }
 
@@ -182,7 +187,6 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
     function pause() public {
         _onlyStrategistOrOwner();
         _pause();
-        _removeAllowances();
     }
 
     /**
@@ -193,7 +197,10 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
     function deposit() public whenNotPaused {
         uint256 wantBalance = IERC20Upgradeable(want).balanceOf(address(this));
         if (wantBalance != 0) {
+            IERC20Upgradeable(want).safeIncreaseAllowance(oxPool, wantBalance);
             IOxPool(oxPool).depositLp(wantBalance);
+
+            IERC20Upgradeable(oxPool).safeIncreaseAllowance(stakingAddress, wantBalance);
             IMultiRewards(stakingAddress).stake(wantBalance);
         }
     }
@@ -253,8 +260,8 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
        uint256 solidBalance = IERC20Upgradeable(SOLID).balanceOf(address(this));
        uint256 oxdBalance = IERC20Upgradeable(OXD).balanceOf(address(this));
 
-       _swapTokens(SOLID, WFTM, solidBalance, SOLIDLY_ROUTER);
-       _swapTokens(OXD, WFTM, oxdBalance, SOLIDLY_ROUTER);
+       _swapTokens(SOLID, WFTM, solidBalance);
+       _swapTokens(OXD, WFTM, oxdBalance);
     }
 
     /**
@@ -277,31 +284,20 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
 
     /** @dev Converts WFTM to both sides of the LP token and builds the liquidity pair */
     function _addLiquidity() internal {
-        address router;
-        uint256 wrapped = IERC20Upgradeable(WFTM).balanceOf(address(this));
-        if (wrapped == 0) {
+        uint256 wftmBalance = IERC20Upgradeable(WFTM).balanceOf(address(this));
+        if (wftmBalance == 0) {
             return;
         }
 
-        if(relayToken != WFTM) {
-            router = _findBestRouterForSwap(WFTM, relayToken, wrapped);
-            _swapTokens(WFTM, relayToken, wrapped, router);
-        }
-
-        uint256 relayTokenHalf = IERC20Upgradeable(relayToken).balanceOf(address(this)) / 2;
-
-        if (relayToken == lpToken0) {
-            router = _findBestRouterForSwap(relayToken, lpToken1, relayTokenHalf);
-            _swapTokens(relayToken, lpToken1, relayTokenHalf, router);
-        } else {
-            router = _findBestRouterForSwap(relayToken, lpToken0, relayTokenHalf);
-            _swapTokens(relayToken, lpToken0, relayTokenHalf, router);
-        }
-
+        // full WFTM -> DEUS, then half DEUS to DEI
+        _swapTokens(WFTM, lpToken1, wftmBalance);
+        _swapTokens(lpToken1, lpToken0, IERC20Upgradeable(lpToken1).balanceOf(address(this)) / 2);
 
         uint256 lpToken0Bal = IERC20Upgradeable(lpToken0).balanceOf(address(this));
         uint256 lpToken1Bal = IERC20Upgradeable(lpToken1).balanceOf(address(this));
 
+        IERC20Upgradeable(lpToken0).safeIncreaseAllowance(SOLIDLY_ROUTER, lpToken0Bal);
+        IERC20Upgradeable(lpToken1).safeIncreaseAllowance(SOLIDLY_ROUTER, lpToken1Bal);
         IBaseV1Router01(SOLIDLY_ROUTER).addLiquidity(
             lpToken0,
             lpToken1,
@@ -315,151 +311,54 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
         );
     }
 
-    /** @dev Returns address of router that would return optimum output for _from->_to swap. */
-    function _findBestRouterForSwap(
-        address _from,
-        address _to,
-        uint256 _amount
-    ) internal view returns (address) {
-        (uint256 fromSolid, ) = IBaseV1Router01(SOLIDLY_ROUTER).getAmountOut(_amount, _from, _to);
-
-        address[] memory path = new address[](2);
-        path[0] = _from;
-        path[1] = _to;
-        uint256 fromSpirit = IUniswapV2Router02(SPIRIT_ROUTER).getAmountsOut(_amount, path)[1];
-
-        return fromSolid > fromSpirit ? SOLIDLY_ROUTER : SPIRIT_ROUTER;
-    }
-
+    /**
+     * @dev Helper function to swap tokens using {SwapInfo}. Also writes {SwapInfo} if none is found.
+     */
     function _swapTokens(
         address _from,
         address _to,
-        uint256 _amount,
-        address routerAddress
+        uint256 _amount
     ) internal {
-        if (_amount != 0) {
-            if (routerAddress == SOLIDLY_ROUTER) {
-                IBaseV1Router01 router = IBaseV1Router01(routerAddress);
-                (, bool stable) = router.getAmountOut(_amount, _from, _to);
-                router.swapExactTokensForTokensSimple(_amount, 0, _from, _to, stable, address(this), block.timestamp);
-            } else {
-                IUniswapV2Router02 router = IUniswapV2Router02(routerAddress);
-                address[] memory path = new address[](2);
-                path[0] = _from;
-                path[1] = _to;
-                router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
-                    _amount,
-                    0,
-                    path,
-                    address(this),
-                    block.timestamp
-                );
-            }
+        if (_from == _to || _amount == 0) {
+            return;
         }
-    }
 
-    /**
-     * @dev Gives the necessary allowances
-     */
-    function _giveAllowances() internal {
-        // STAKED
-        // WANT
-        uint256 wantAllowance = type(uint).max - IERC20Upgradeable(want).allowance(address(this), oxPool);
-        IERC20Upgradeable(want).safeIncreaseAllowance(
-            oxPool,
-            wantAllowance
-        );
+        SwapInfo storage si = swapInfo[_from][_to];
+        if (si.path.length == 0 || si.router == address(0)) {
+            delete(si.path);
+            si.path.push(_from);
+            si.path.push(_to);
+            uint256 fromSolid = 0;
+            uint256 fromSpirit = 0;
 
-        // OXPOOL
-        uint256 oxPoolAllowance = type(uint).max - IERC20Upgradeable(oxPool).allowance(address(this), stakingAddress);
-        IERC20Upgradeable(oxPool).safeIncreaseAllowance(
-            stakingAddress,
-            oxPoolAllowance
-        );
+            try IBaseV1Router01(SOLIDLY_ROUTER).getAmountOut(_amount, _from, _to) returns (uint256 amount, bool) {
+                fromSolid = amount;
+            } catch {}
+            try IUniswapV2Router02(SPIRIT_ROUTER).getAmountsOut(_amount, si.path) returns (uint256[] memory amounts) {
+                fromSpirit = amounts[si.path.length - 1];
+            } catch {}
+            si.router = fromSolid > fromSpirit ? SOLIDLY_ROUTER : SPIRIT_ROUTER;
+        }
 
-        // REWARDS
-        // SOLID
-        uint256 solidlyAllowance = type(uint).max - IERC20Upgradeable(SOLID).allowance(address(this), SOLIDLY_ROUTER);
-        IERC20Upgradeable(SOLID).safeIncreaseAllowance(
-            SOLIDLY_ROUTER,
-            solidlyAllowance
-        );
-        solidlyAllowance = type(uint).max - IERC20Upgradeable(SOLID).allowance(address(this), SPIRIT_ROUTER);
-        IERC20Upgradeable(SOLID).safeIncreaseAllowance(
-            SPIRIT_ROUTER,
-            solidlyAllowance
-        );
-
-        // OXD
-        uint256 oxdAllowance = type(uint).max - IERC20Upgradeable(OXD).allowance(address(this), SOLIDLY_ROUTER);
-        IERC20Upgradeable(OXD).safeIncreaseAllowance(
-            SOLIDLY_ROUTER,
-            oxdAllowance
-        );
-        oxdAllowance = type(uint).max - IERC20Upgradeable(OXD).allowance(address(this), SPIRIT_ROUTER);
-        IERC20Upgradeable(OXD).safeIncreaseAllowance(
-            SPIRIT_ROUTER,
-            oxdAllowance
-        );
-
-        // INTERMEDIARY
-        // WFTM
-        uint256 wftmAllowance = type(uint).max - IERC20Upgradeable(WFTM).allowance(address(this), SOLIDLY_ROUTER);
-        IERC20Upgradeable(WFTM).safeIncreaseAllowance(
-            SOLIDLY_ROUTER,
-            wftmAllowance
-        );
-        wftmAllowance = type(uint).max - IERC20Upgradeable(WFTM).allowance(address(this), SPIRIT_ROUTER);
-        IERC20Upgradeable(WFTM).safeIncreaseAllowance(
-            SPIRIT_ROUTER,
-            wftmAllowance
-        );
-
-        // PAIR TOKENS
-        // lpToken0
-        uint256 lpToken0Allowance = type(uint).max - IERC20Upgradeable(lpToken0).allowance(address(this), SOLIDLY_ROUTER);
-        IERC20Upgradeable(lpToken0).safeIncreaseAllowance(
-            SOLIDLY_ROUTER,
-            lpToken0Allowance
-        );
-        lpToken0Allowance = type(uint).max - IERC20Upgradeable(lpToken0).allowance(address(this), SPIRIT_ROUTER);
-        IERC20Upgradeable(lpToken0).safeIncreaseAllowance(
-            SPIRIT_ROUTER,
-            lpToken0Allowance
-        );
-
-        // lpToken1
-        uint256 lpToken1Allowance = type(uint).max - IERC20Upgradeable(lpToken1).allowance(address(this), SOLIDLY_ROUTER);
-        IERC20Upgradeable(lpToken1).safeIncreaseAllowance(
-            SOLIDLY_ROUTER,
-            lpToken1Allowance
-        );
-        lpToken1Allowance = type(uint).max - IERC20Upgradeable(lpToken1).allowance(address(this), SPIRIT_ROUTER);
-        IERC20Upgradeable(lpToken1).safeIncreaseAllowance(
-            SPIRIT_ROUTER,
-            lpToken1Allowance
-        );
-    }
-
-    /**
-     * @dev Removes all allowance that were given
-     */
-    function _removeAllowances() internal {
-        IERC20Upgradeable(want).safeDecreaseAllowance(oxPool, IERC20Upgradeable(want).allowance(address(this), oxPool));
-        IERC20Upgradeable(oxPool).safeDecreaseAllowance(stakingAddress, IERC20Upgradeable(oxPool).allowance(address(this), stakingAddress));
-
-        IERC20Upgradeable(SOLID).safeDecreaseAllowance(SOLIDLY_ROUTER, IERC20Upgradeable(SOLID).allowance(address(this), SOLIDLY_ROUTER));
-        IERC20Upgradeable(SOLID).safeDecreaseAllowance(SPIRIT_ROUTER, IERC20Upgradeable(SOLID).allowance(address(this), SPIRIT_ROUTER));
-
-        IERC20Upgradeable(OXD).safeDecreaseAllowance(SOLIDLY_ROUTER, IERC20Upgradeable(OXD).allowance(address(this), SOLIDLY_ROUTER));
-        IERC20Upgradeable(OXD).safeDecreaseAllowance(SPIRIT_ROUTER, IERC20Upgradeable(OXD).allowance(address(this), SPIRIT_ROUTER));
-
-        IERC20Upgradeable(WFTM).safeDecreaseAllowance(SOLIDLY_ROUTER, IERC20Upgradeable(WFTM).allowance(address(this), SOLIDLY_ROUTER));
-        IERC20Upgradeable(WFTM).safeDecreaseAllowance(SPIRIT_ROUTER, IERC20Upgradeable(WFTM).allowance(address(this), SPIRIT_ROUTER));
-
-        IERC20Upgradeable(lpToken0).safeDecreaseAllowance(SOLIDLY_ROUTER, IERC20Upgradeable(lpToken0).allowance(address(this), SOLIDLY_ROUTER));
-        IERC20Upgradeable(lpToken0).safeDecreaseAllowance(SPIRIT_ROUTER, IERC20Upgradeable(lpToken0).allowance(address(this), SPIRIT_ROUTER));
-        IERC20Upgradeable(lpToken1).safeDecreaseAllowance(SOLIDLY_ROUTER, IERC20Upgradeable(lpToken1).allowance(address(this), SOLIDLY_ROUTER));
-        IERC20Upgradeable(lpToken1).safeDecreaseAllowance(SPIRIT_ROUTER, IERC20Upgradeable(lpToken1).allowance(address(this), SPIRIT_ROUTER));
+        IERC20Upgradeable(_from).safeIncreaseAllowance(si.router, _amount);
+        if (si.router == SOLIDLY_ROUTER) {
+            IBaseV1Router01 router = IBaseV1Router01(si.router);
+            IBaseV1Router01.route[] memory routes = new IBaseV1Router01.route[](si.path.length - 1);
+            uint256 prevRouteOutput = _amount;
+            for (uint256 i = 0; i < routes.length; i++) {
+                (uint256 output, bool useStable) = router.getAmountOut(prevRouteOutput, si.path[i], si.path[i + 1]);
+                routes[i] = IBaseV1Router01.route({from: si.path[i], to: si.path[i + 1], stable: useStable});
+                prevRouteOutput = output;
+            }
+            router.swapExactTokensForTokens(_amount, 0, routes, address(this), block.timestamp);
+        } else {
+            IUniswapV2Router02(si.router).swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                _amount,
+                0,
+                si.path,
+                address(this),
+                block.timestamp
+            );
+        }
     }
 }
