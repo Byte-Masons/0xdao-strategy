@@ -3,14 +3,14 @@
   "proxies": [
     {
       "address": "0x36b58F5C1969B7b6591D752ea6F5486D069010AB",
-      "txHash": "0x5ff0cefacd6e5d156c94cc7fb7a3932caf62bff624fb01a90940cdb71b8a97ec",
+      "txHash": "0x154da5002c2fbb0e5c2429ba493d389b306027a12a71b134a0e1b98f6dd09b0d",
       "kind": "uups"
     }
   ],
   "impls": {
-    "8b0724bc184ba34604c3d15a480eb7402ed38f1c695da4b89462b78047e66e93": {
+    "cf468385116c6c6fe3a3607b658243b568e5e7a141b0b0d59b2946d108b2e097": {
       "address": "0x51A1ceB83B83F1985a81C295d1fF28Afef186E02",
-      "txHash": "0xae897e1764f55a865788d8373dde8d0a2016a06e02c7d3187ec37f8e3b00c678",
+      "txHash": "0xf7f4fcdcbf400b4093ef4ff0bffbbda7c50578d7811b9cb40749ae61ee67b748",
       "layout": {
         "storage": [
           {
@@ -113,7 +113,7 @@
             "label": "harvestLog",
             "offset": 0,
             "slot": "351",
-            "type": "t_array(t_struct(Harvest)6799_storage)dyn_storage",
+            "type": "t_array(t_struct(Harvest)6969_storage)dyn_storage",
             "contract": "ReaperBaseStrategy",
             "src": "contracts\\abstract\\ReaperBaseStrategy.sol:27"
           },
@@ -211,7 +211,7 @@
             "slot": "363",
             "type": "t_address",
             "contract": "ReaperAutoCompoundOxDao",
-            "src": "contracts\\ReaperAutoCompoundOxDao.sol:40"
+            "src": "contracts\\ReaperAutoCompoundOxDao.sol:42"
           },
           {
             "label": "lpToken0",
@@ -219,7 +219,7 @@
             "slot": "364",
             "type": "t_address",
             "contract": "ReaperAutoCompoundOxDao",
-            "src": "contracts\\ReaperAutoCompoundOxDao.sol:41"
+            "src": "contracts\\ReaperAutoCompoundOxDao.sol:43"
           },
           {
             "label": "lpToken1",
@@ -227,7 +227,7 @@
             "slot": "365",
             "type": "t_address",
             "contract": "ReaperAutoCompoundOxDao",
-            "src": "contracts\\ReaperAutoCompoundOxDao.sol:42"
+            "src": "contracts\\ReaperAutoCompoundOxDao.sol:44"
           },
           {
             "label": "oxPool",
@@ -235,7 +235,7 @@
             "slot": "366",
             "type": "t_address",
             "contract": "ReaperAutoCompoundOxDao",
-            "src": "contracts\\ReaperAutoCompoundOxDao.sol:60"
+            "src": "contracts\\ReaperAutoCompoundOxDao.sol:64"
           },
           {
             "label": "stakingAddress",
@@ -243,7 +243,7 @@
             "slot": "367",
             "type": "t_address",
             "contract": "ReaperAutoCompoundOxDao",
-            "src": "contracts\\ReaperAutoCompoundOxDao.sol:61"
+            "src": "contracts\\ReaperAutoCompoundOxDao.sol:65"
           },
           {
             "label": "relayToken",
@@ -251,15 +251,15 @@
             "slot": "368",
             "type": "t_address",
             "contract": "ReaperAutoCompoundOxDao",
-            "src": "contracts\\ReaperAutoCompoundOxDao.sol:62"
+            "src": "contracts\\ReaperAutoCompoundOxDao.sol:66"
           },
           {
             "label": "swapInfo",
             "offset": 0,
             "slot": "369",
-            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(SwapInfo)5046_storage))",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_struct(SwapInfo)5047_storage))",
             "contract": "ReaperAutoCompoundOxDao",
-            "src": "contracts\\ReaperAutoCompoundOxDao.sol:68"
+            "src": "contracts\\ReaperAutoCompoundOxDao.sol:72"
           }
         ],
         "types": {
@@ -272,7 +272,7 @@
           "t_array(t_bytes32)dyn_storage": {
             "label": "bytes32[]"
           },
-          "t_array(t_struct(Harvest)6799_storage)dyn_storage": {
+          "t_array(t_struct(Harvest)6969_storage)dyn_storage": {
             "label": "struct ReaperBaseStrategy.Harvest[]"
           },
           "t_array(t_uint256)49_storage": {
@@ -290,10 +290,10 @@
           "t_mapping(t_address,t_bool)": {
             "label": "mapping(address => bool)"
           },
-          "t_mapping(t_address,t_mapping(t_address,t_struct(SwapInfo)5046_storage))": {
+          "t_mapping(t_address,t_mapping(t_address,t_struct(SwapInfo)5047_storage))": {
             "label": "mapping(address => mapping(address => struct ReaperAutoCompoundOxDao.SwapInfo))"
           },
-          "t_mapping(t_address,t_struct(SwapInfo)5046_storage)": {
+          "t_mapping(t_address,t_struct(SwapInfo)5047_storage)": {
             "label": "mapping(address => struct ReaperAutoCompoundOxDao.SwapInfo)"
           },
           "t_mapping(t_bytes32,t_struct(AddressSet)2499_storage)": {
@@ -314,7 +314,7 @@
               }
             ]
           },
-          "t_struct(Harvest)6799_storage": {
+          "t_struct(Harvest)6969_storage": {
             "label": "struct ReaperBaseStrategy.Harvest",
             "members": [
               {
@@ -353,7 +353,7 @@
               }
             ]
           },
-          "t_struct(SwapInfo)5046_storage": {
+          "t_struct(SwapInfo)5047_storage": {
             "label": "struct ReaperAutoCompoundOxDao.SwapInfo",
             "members": [
               {

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+import 'hardhat/console.sol';
+
 import './abstract/ReaperBaseStrategy.sol';
 import './interfaces/IUniswapRouter.sol';
 import './interfaces/IMasterChef.sol';
@@ -45,10 +47,12 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
      * @dev Third Party Contracts:
      * {SOLIDLY_ROUTER} - Solidly router for swapping tokens
      * {SPIRIT_ROUTER} - Backup router for swapping illiquid pairs
+     * {SPOOKY_ROUTER} - Backup router for swapping illiquid pairs
      * {OXLENS} - Primary view interface for OxDao
      */
     address public constant SOLIDLY_ROUTER = 0xa38cd27185a464914D3046f0AB9d43356B34829D;
     address public constant SPIRIT_ROUTER = 0x16327E3FbDaCA3bcF7E38F5Af2599D2DDc33aE52;
+    address public constant SPOOKY_ROUTER = 0xF491e7B69E4244ad4002BC14e878a34207E38c29;
     address public constant OXLENS = 0xDA00137c79B30bfE06d04733349d98Cf06320e69;
 
     /**
@@ -87,7 +91,11 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
         (lpToken0, lpToken1) = IBaseV1Pair(want).tokens();
         oxPool = IOxLens(OXLENS).oxPoolBySolidPool(address(want));
         stakingAddress = IOxPool(oxPool).stakingAddress();
-        relayToken = lpToken0;
+        if (lpToken0 == WFTM || lpToken1 == WFTM) {
+            relayToken = WFTM;
+        } else {
+            relayToken = lpToken0;
+        }
     }
 
     /**
@@ -96,6 +104,11 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
     function updateSwapInfo(address _tokenIn, address _tokenOut, address _router, address[] calldata _path) external {
         _onlyStrategistOrOwner();
         swapInfo[_tokenIn][_tokenOut] = SwapInfo({path: _path, router: _router});
+    }
+
+    function setRelayToken(address _relayToken) external {
+        _onlyStrategistOrOwner();
+        relayToken = _relayToken;
     }
 
     /**
@@ -288,10 +301,25 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
         if (wftmBalance == 0) {
             return;
         }
+        console.log('addLiquidity');
 
-        // full WFTM -> DEUS, then half DEUS to DEI
-        _swapTokens(WFTM, lpToken1, wftmBalance);
-        _swapTokens(lpToken1, lpToken0, IERC20Upgradeable(lpToken1).balanceOf(address(this)) / 2);
+        if (relayToken == WFTM) {
+            if (relayToken == lpToken0) {
+                console.log('LPTOKEN0 IS WFTM');
+                _swapTokens(lpToken0, lpToken1, wftmBalance / 2);
+            } else {
+                console.log('LPTOKEN1 IS WFTM');
+                _swapTokens(lpToken1, lpToken0, wftmBalance / 2);
+            }
+        } else {
+            if (relayToken == lpToken0) {
+                _swapTokens(WFTM, lpToken0, wftmBalance);
+                _swapTokens(lpToken0, lpToken1, IERC20Upgradeable(lpToken0).balanceOf(address(this)) / 2);
+            } else {
+                _swapTokens(WFTM, lpToken1, wftmBalance);
+                _swapTokens(lpToken1, lpToken0, IERC20Upgradeable(lpToken1).balanceOf(address(this)) / 2);
+            }
+        }
 
         uint256 lpToken0Bal = IERC20Upgradeable(lpToken0).balanceOf(address(this));
         uint256 lpToken1Bal = IERC20Upgradeable(lpToken1).balanceOf(address(this));
@@ -330,6 +358,7 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
             si.path.push(_to);
             uint256 fromSolid = 0;
             uint256 fromSpirit = 0;
+            uint256 fromSpooky = 0;
 
             try IBaseV1Router01(SOLIDLY_ROUTER).getAmountOut(_amount, _from, _to) returns (uint256 amount, bool) {
                 fromSolid = amount;
@@ -337,7 +366,22 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
             try IUniswapV2Router02(SPIRIT_ROUTER).getAmountsOut(_amount, si.path) returns (uint256[] memory amounts) {
                 fromSpirit = amounts[si.path.length - 1];
             } catch {}
-            si.router = fromSolid > fromSpirit ? SOLIDLY_ROUTER : SPIRIT_ROUTER;
+            try IUniswapV2Router02(SPOOKY_ROUTER).getAmountsOut(_amount, si.path) returns (uint256[] memory amounts) {
+                fromSpooky = amounts[si.path.length - 1];
+            } catch {}
+
+            si.router = SOLIDLY_ROUTER;
+
+            if (fromSpooky > fromSpirit && fromSpooky > fromSolid) {
+                if (fromSpooky > fromSolid) {
+                    si.router = SPOOKY_ROUTER;
+                }
+            } else {
+                if (fromSpirit > fromSolid) {
+                    si.router = SPIRIT_ROUTER;
+                }
+            }
+            console.log(si.router);
         }
 
         IERC20Upgradeable(_from).safeIncreaseAllowance(si.router, _amount);
