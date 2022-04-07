@@ -4,9 +4,9 @@
 // Possible improvement: have the deployment scripts write 
 // the vault and strategy addresses in a file, and use those here
 module.exports.getTools = async () => {
-    const vaultAddress = '';
-    const strategyAddress = '';
-    const wantAddress = '';
+    const vaultAddress = '0x221Db83049f045E8dF428F5d412C700F28C40d0d';
+    const strategyAddress = '0x61fF41Abb5221BF7ECDb7B3190cBdF668E8E0749';
+    const wantAddress = '0x5804F6C40f44cF7593F73cf3aa16F7037213A623';
     const Strategy = await ethers.getContractFactory('ReaperAutoCompoundOxDao');
   
     const [deployer] = await ethers.getSigners();
