@@ -20,6 +20,8 @@ const main = async () => {
     tx = await want.approve(vault.address, wantBalance, options);
     await tx.wait();
     console.log('APPROVED');
+    await new Promise(resolve => { setTimeout(resolve, 2000); });
+
     tx = await vault.depositAll(options);
     await tx.wait();
     console.log(`1 - Vault | Deposited ${wantBalance}`);
@@ -34,6 +36,8 @@ const main = async () => {
     tx = await want.approve(vault.address, wantBalance, options);
     await tx.wait();
     console.log('APPROVED');
+    await new Promise(resolve => { setTimeout(resolve, 2000); });
+
     tx = await vault.depositAll(options);
     await tx.wait();
     console.log(`3 - Vault | Deposited ${wantBalance}`);
@@ -55,7 +59,10 @@ const main = async () => {
     await new Promise(resolve => { setTimeout(resolve, 2000); });
 
     wantBalance = await want.balanceOf(deployer.address);
-    await want.approve(vault.address, wantBalance, options);
+    tx = await want.approve(vault.address, wantBalance, options);
+    await tx.wait();
+    console.log('APPROVED');
+    await new Promise(resolve => { setTimeout(resolve, 2000); });
     /// Not included: a failed deposit transaction into the vault
     // try {
     //     tx = await vault.depositAll(options);

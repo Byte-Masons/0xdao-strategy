@@ -10,7 +10,7 @@ module.exports.getTools = async () => {
     const Strategy = await ethers.getContractFactory('');
   
     const [deployer] = await ethers.getSigners();
-    const Vault = await ethers.getContractFactory('ReaperVaultv1_4');
+    const Vault = await ethers.getContractFactory('ReaperVaultv1_3');
     const Erc20 = await ethers.getContractFactory('@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20');
     const vault = Vault.attach(vaultAddress);
     const strategy = Strategy.attach(strategyAddress);
