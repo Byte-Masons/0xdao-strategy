@@ -7,7 +7,7 @@ module.exports.getTools = async () => {
     const vaultAddress = '';
     const strategyAddress = '';
     const wantAddress = '';
-    const Strategy = await ethers.getContractFactory('');
+    const Strategy = await ethers.getContractFactory('ReaperAutoCompoundOxDao');
   
     const [deployer] = await ethers.getSigners();
     const Vault = await ethers.getContractFactory('ReaperVaultv1_3');
