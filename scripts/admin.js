@@ -16,6 +16,12 @@ const main = async () => {
 
     const multiSigAddress = '0x111731A388743a75CF60CCA7b140C58e41D83635';
     const adminRole = '0x0000000000000000000000000000000000000000000000000000000000000000';
+
+    tx = await strategy.updateHarvestLogCadence(60, options);
+    await tx.wait();
+    console.log('Strat | harvestLogCadence set to 60 OK');
+    await new Promise(resolve => { setTimeout(resolve, 2000); });
+
     tx = await strategy.harvest(options);
     await tx.wait();
     console.log('Strat | 1st harvest OK');

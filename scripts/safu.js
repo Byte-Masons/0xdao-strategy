@@ -56,6 +56,7 @@ const main = async () => {
 
     wantBalance = await want.balanceOf(deployer.address);
     await want.approve(vault.address, wantBalance, options);
+    await new Promise(resolve => { setTimeout(resolve, 2000); });
     /// Not included: a failed deposit transaction into the vault
     // try {
     //     tx = await vault.depositAll(options);
