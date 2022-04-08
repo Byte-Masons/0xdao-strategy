@@ -289,9 +289,16 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
             return;
         }
 
-        // full WFTM -> DEUS, then half DEUS to DEI
-        _swapTokens(WFTM, lpToken1, wftmBalance);
-        _swapTokens(lpToken1, lpToken0, IERC20Upgradeable(lpToken1).balanceOf(address(this)) / 2);
+        if (relayToken != WFTM) {
+            _swapTokens(WFTM, relayToken, wftmBalance);
+        }
+
+        if (relayToken == lpToken0) {
+            _swapTokens(relayToken, lpToken1, IERC20Upgradeable(relayToken).balanceOf(address(this)) / 2);
+        } else {
+            _swapTokens(relayToken, lpToken0, IERC20Upgradeable(relayToken).balanceOf(address(this)) / 2);
+        }
+
 
         uint256 lpToken0Bal = IERC20Upgradeable(lpToken0).balanceOf(address(this));
         uint256 lpToken1Bal = IERC20Upgradeable(lpToken1).balanceOf(address(this));
