@@ -36,7 +36,7 @@ describe('Vaults', function () {
   
   const treasuryAddr = '0x0e7c5313E9BB80b654734d9b7aB1FB01468deE3b';
   const paymentSplitterAddress = '0x63cbd4134c2253041F370472c130e92daE4Ff174';
-  const wantAddress = '0x8aa410d8B0Cc3dE48AAC8eB5d928646A00e6ff04';
+  const wantAddress = '0x94bE7e51efE2A0C06c2281b6b385FCD12C84d6F9';
 
   const wantHolderAddr = '0x1E71AEE6081f62053123140aacC7a06021D77348';
   const strategistAddr = '0x1A20D7A31e5B3Bc5f02c8A146EF6f394502a10c4';
