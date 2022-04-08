@@ -1,6 +1,6 @@
 async function main() {
   //const fUSDTProxy = '0x512A00B3BbC54BAeefcf2FbD82E082E04bc5dffd';
-  const stratProxy = '0x34885918d804F46d53ea201BD5b9fdC44e0CD67B';
+  const stratProxy = '0x61fF41Abb5221BF7ECDb7B3190cBdF668E8E0749';
   const stratFactory = await ethers.getContractFactory('ReaperAutoCompoundOxDao');
   const stratContract = await hre.upgrades.upgradeProxy(stratProxy, stratFactory);
 }
