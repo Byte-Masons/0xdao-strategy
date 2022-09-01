@@ -435,7 +435,7 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
 
         IERC20Upgradeable(SOLID).safeDecreaseAllowance(SOLIDLY_ROUTER, IERC20Upgradeable(SOLID).allowance(address(this), SOLIDLY_ROUTER));
         IERC20Upgradeable(SOLID).safeDecreaseAllowance(SPOOKY_ROUTER, IERC20Upgradeable(SOLID).allowance(address(this), SPOOKY_ROUTER));
-        
+
         IERC20Upgradeable(OXD).safeDecreaseAllowance(SOLIDLY_ROUTER, IERC20Upgradeable(OXD).allowance(address(this), SOLIDLY_ROUTER));
         IERC20Upgradeable(OXD).safeDecreaseAllowance(SPOOKY_ROUTER, IERC20Upgradeable(OXD).allowance(address(this), SPOOKY_ROUTER));
 
