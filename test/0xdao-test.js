@@ -76,6 +76,7 @@ describe('Vaults', function () {
     //get artifacts
     Vault = await ethers.getContractFactory('ReaperVaultv1_3');
     Strategy = await ethers.getContractFactory('ReaperAutoCompoundOxDao');
+    // Strategy = await ethers.getContractFactory('OldStrat');
     Want = await ethers.getContractFactory('@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20');
 
     //deploy contracts
@@ -99,8 +100,8 @@ describe('Vaults', function () {
     await want.connect(wantHolder).approve(vault.address, ethers.constants.MaxUint256);
   });
 
-  xdescribe('Deploying the vault and strategy', function () {
-    it('should initiate vault with a 0 balance', async function () {
+  describe('Deploying the vault and strategy', function () {
+    xit('should initiate vault with a 0 balance', async function () {
       const totalBalance = await vault.balance();
       const availableBalance = await vault.available();
       const pricePerFullShare = await vault.getPricePerFullShare();
@@ -153,6 +154,34 @@ describe('Vaults', function () {
 
       await moveTimeForward(timeToSkip.toNumber());
       await hre.upgrades.upgradeProxy(strategy.address, StrategyV3);
+    });
+
+    xit('should allow implementation upgrade and harvest', async function () {
+      // Upgrade
+      const StrategyV2 = await ethers.getContractFactory('ReaperAutoCompoundOxDao');
+      let timeToSkip = (await strategy.UPGRADE_TIMELOCK()).add(10);
+      await strategy.initiateUpgradeCooldown();
+      await moveTimeForward(timeToSkip.toNumber());
+      await hre.upgrades.upgradeProxy(strategy.address, StrategyV2);
+
+      // Harvest
+      timeToSkip = 3600;
+      const initialUserBalance = await want.balanceOf(wantHolderAddr);
+      const depositAmount = initialUserBalance.div(10);
+      await vault.connect(wantHolder).deposit(depositAmount);
+      const initialVaultBalance = await vault.balance();
+      await strategy.updateHarvestLogCadence(1);
+
+      const numHarvests = 5;
+      for (let i = 0; i < numHarvests; i++) {
+        await moveBlocksForward(100);
+        await strategy.harvest();
+      }
+      const finalVaultBalance = await vault.balance();
+      expect(finalVaultBalance).to.be.gt(initialVaultBalance);
+
+      const averageAPR = await strategy.averageAPRAcrossLastNHarvests(numHarvests);
+      console.log(`Average APR across ${numHarvests} harvests is ${averageAPR} basis points.`);
     });
   });
 
@@ -263,10 +292,8 @@ describe('Vaults', function () {
       const timeToSkip = 3600;
       const initialUserBalance = await want.balanceOf(wantHolderAddr);
       const depositAmount = initialUserBalance.div(10);
-      console.log('1');
       await vault.connect(wantHolder).deposit(depositAmount);
       const initialVaultBalance = await vault.balance();
-      console.log('2');
       await strategy.updateHarvestLogCadence(1);
 
       const numHarvests = 5;
@@ -274,7 +301,6 @@ describe('Vaults', function () {
         await moveBlocksForward(100);
         await strategy.harvest();
       }
-      console.log('3');
       const finalVaultBalance = await vault.balance();
       expect(finalVaultBalance).to.be.gt(initialVaultBalance);
 
