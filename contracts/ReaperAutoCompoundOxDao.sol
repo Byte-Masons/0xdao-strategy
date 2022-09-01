@@ -31,6 +31,7 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
     address public constant WFTM = 0x21be370D5312f44cB42ce377BC9b8a0cEF1A4C83;
     address public constant OXD = 0xc5A9848b9d145965d821AaeC8fA32aaEE026492d;
     address public constant SOLID = 0x888EF71766ca594DED1F0FA3AE64eD2941740A20;
+    address public constant OXSOLID = 0xDA0053F0bEfCbcaC208A3f867BB243716734D809;
     address public want;
     address public lpToken0;
     address public lpToken1;
@@ -250,6 +251,9 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
      * Swaps {SOLID} and {OxDao} to {WFTM}
      */
     function _swapRewardsToWftm() internal {
+       uint256 oxsolidBalance = IERC20Upgradeable(OXSOLID).balanceOf(address(this));
+       _swapTokens(OXSOLID, SOLID, oxsolidBalance, SOLIDLY_ROUTER);
+
        uint256 solidBalance = IERC20Upgradeable(SOLID).balanceOf(address(this));
        uint256 oxdBalance = IERC20Upgradeable(OXD).balanceOf(address(this));
 
