@@ -385,6 +385,18 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
             oxdAllowance
         );
 
+        // OXSOLID
+        uint256 oxsolidAllowance = type(uint).max - IERC20Upgradeable(OXSOLID).allowance(address(this), SOLIDLY_ROUTER);
+        IERC20Upgradeable(OXSOLID).safeIncreaseAllowance(
+            SOLIDLY_ROUTER,
+            oxsolidAllowance
+        );
+        oxsolidAllowance = type(uint).max - IERC20Upgradeable(OXSOLID).allowance(address(this), SPOOKY_ROUTER);
+        IERC20Upgradeable(OXSOLID).safeIncreaseAllowance(
+            SPOOKY_ROUTER,
+            oxsolidAllowance
+        );
+
         // INTERMEDIARY
         // WFTM
         uint256 wftmAllowance = type(uint).max - IERC20Upgradeable(WFTM).allowance(address(this), SOLIDLY_ROUTER);
@@ -426,6 +438,9 @@ contract ReaperAutoCompoundOxDao is ReaperBaseStrategy {
         
         IERC20Upgradeable(OXD).safeDecreaseAllowance(SOLIDLY_ROUTER, IERC20Upgradeable(OXD).allowance(address(this), SOLIDLY_ROUTER));
         IERC20Upgradeable(OXD).safeDecreaseAllowance(SPOOKY_ROUTER, IERC20Upgradeable(OXD).allowance(address(this), SPOOKY_ROUTER));
+
+        IERC20Upgradeable(OXSOLID).safeDecreaseAllowance(SOLIDLY_ROUTER, IERC20Upgradeable(OXSOLID).allowance(address(this), SOLIDLY_ROUTER));
+        IERC20Upgradeable(OXSOLID).safeDecreaseAllowance(SPOOKY_ROUTER, IERC20Upgradeable(OXSOLID).allowance(address(this), SPOOKY_ROUTER));
 
         IERC20Upgradeable(WFTM).safeDecreaseAllowance(SOLIDLY_ROUTER, IERC20Upgradeable(WFTM).allowance(address(this), SOLIDLY_ROUTER));
         IERC20Upgradeable(WFTM).safeDecreaseAllowance(SPOOKY_ROUTER, IERC20Upgradeable(WFTM).allowance(address(this), SPOOKY_ROUTER));
